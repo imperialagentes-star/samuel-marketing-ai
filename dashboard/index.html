@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Samuel Marketing AI</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    body { background: #0a0a0f; font-family: 'Inter', system-ui, sans-serif; }
+    .glass { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+    .nav-item { @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer select-none; }
+    .nav-item.active { background: linear-gradient(135deg, #7c3aed22, #4f46e522); color: white; border: 1px solid #7c3aed44; }
+    .btn-primary { @apply px-4 py-2 rounded-xl text-sm font-semibold text-white transition-all active:scale-95; background: linear-gradient(135deg, #7c3aed, #4f46e5); }
+    .btn-primary:hover { box-shadow: 0 0 20px #7c3aed55; }
+    .btn-secondary { @apply px-4 py-2 rounded-xl text-sm font-medium text-gray-300 bg-white/5 hover:bg-white/10 border border-white/10 transition-all active:scale-95; }
+    .btn-danger { @apply px-4 py-2 rounded-xl text-sm font-medium text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all active:scale-95; }
+    .card { @apply rounded-2xl p-5; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+    .input { @apply w-full px-3 py-2.5 rounded-xl text-sm text-white bg-white/5 border border-white/10 placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30 transition-all; }
+    .textarea { @apply w-full px-3 py-2.5 rounded-xl text-sm text-white bg-white/5 border border-white/10 placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30 transition-all resize-none; }
+    .label { @apply block text-xs font-medium text-gray-400 mb-1.5; }
+    .badge { @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium; }
+    .modal-bg { @apply fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4; }
+    .modal { @apply rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto; background: #12121e; border: 1px solid rgba(255,255,255,0.1); }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #ffffff20; border-radius: 4px; }
+  </style>
+</head>
+<body class="h-full text-white" x-data="app()" x-cloak x-init="boot()">
+
+  <!-- LOGIN SCREEN -->
+  <div x-show="!authenticated" class="fixed inset-0 flex items-center justify-center" style="background:#0a0a0f">
+    <div class="w-full max-w-sm px-4">
+      <div class="text-center mb-8">
+        <div class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl mx-auto mb-4" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">⚡</div>
+        <h1 class="text-2xl font-bold text-white">Samuel Marketing AI</h1>
+        <p class="text-gray-400 text-sm mt-1">Ingresa tu contraseña para continuar</p>
+      </div>
+      <form @submit.prevent="login()" class="space-y-3">
+        <input type="password" x-model="loginPassword" class="input text-center text-lg tracking-widest"
+          placeholder="••••••••••" autofocus />
+        <div x-show="loginError" class="text-red-400 text-sm text-center" x-text="loginError"></div>
+        <button type="submit" :disabled="loginLoading" class="btn-primary w-full py-3">
+          <span x-text="loginLoading ? 'Verificando...' : 'Entrar'"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP -->
+  <div x-show="authenticated" class="flex h-screen overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside class="w-56 flex-shrink-0 flex flex-col" style="background:#0d0d1a; border-right:1px solid rgba(255,255,255,0.06)">
+      <!-- Logo -->
+      <div class="px-4 py-5 border-b border-white/5">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm" style="background:linear-gradient(135deg,#7c3aed,#4f46e5)">⚡</div>
+          <div>
+            <div class="text-sm font-bold text-white">Samuel AI</div>
+            <div class="text-xs text-gray-500">Marketing System</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="flex-1 px-2 py-3 space-y-0.5 overflow-y-auto">
+        <div @click="view='home'" :class="view==='home' ? 'active' : ''" class="nav-item">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          Inicio
+        </div>
+        <div @click="view='clientes'; loadClients()" :class="view==='clientes' ? 'active' : ''" class="nav-item">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Clientes
+          <span x-show="clients.length > 0" class="ml-auto badge" style="background:#7c3aed22;color:#a78bfa" x-text="clients.length"></span>
+        </div>
+        <div @click="view='modulos'" :class="view==='modulos' ? 'active' : ''" class="nav-item">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          Módulos IA
+        </div>
+        <div @click="view='monitor'; loadMonitorStatus()" :class="view==='monitor' ? 'active' : ''" class="nav-item">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          Monitor 24/7
+          <span x-show="monitorActive" class="ml-auto w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+        </div>
+        <div @click="view='reportes'; loadReports()" :class="view==='reportes' ? 'active' : ''" class="nav-item">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+          Reportes
+        </div>
+        <div @click="view='config'; loadSettings()" :class="view==='config' ? 'active' : ''" class="nav-item">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+          Configuración
+        </div>
+      </nav>
+
+      <!-- Monitor status footer -->
+      <div class="px-3 py-3 border-t border-white/5">
+        <div class="flex items-center gap-2 px-2 py-2 rounded-lg" :style="monitorActive ? 'background:#16a34a11' : 'background:#ef444411'">
+          <div class="w-2 h-2 rounded-full flex-shrink-0" :class="monitorActive ? 'bg-green-400 animate-pulse' : 'bg-red-400'"></div>
+          <span class="text-xs" :class="monitorActive ? 'text-green-400' : 'text-red-400'" x-text="monitorActive ? 'Monitor activo' : 'Monitor pausado'"></span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="flex-1 overflow-y-auto">
+      <div class="p-6 max-w-5xl mx-auto">
+
+        <!-- ========== HOME ========== -->
+        <div x-show="view==='home'">
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-white">Bienvenido, Samuel 👋</h1>
+            <p class="text-gray-400 text-sm mt-1">Tu sistema de marketing IA — todo en un lugar</p>
+          </div>
+
+          <!-- Stats -->
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="card">
+              <div class="text-2xl font-bold text-white" x-text="clients.filter(c=>c.active).length"></div>
+              <div class="text-xs text-gray-400 mt-1">Clientes activos</div>
+            </div>
+            <div class="card">
+              <div class="text-2xl font-bold" :class="monitorActive ? 'text-green-400' : 'text-red-400'" x-text="monitorActive ? 'ON' : 'OFF'"></div>
+              <div class="text-xs text-gray-400 mt-1">Monitor 24/7</div>
+            </div>
+            <div class="card">
+              <div class="text-2xl font-bold text-purple-400" x-text="reports.length"></div>
+              <div class="text-xs text-gray-400 mt-1">Reportes generados</div>
+            </div>
+            <div class="card">
+              <div class="text-2xl font-bold text-blue-400">8:00</div>
+              <div class="text-xs text-gray-400 mt-1">Próximo reporte</div>
+            </div>
+          </div>
+
+          <!-- Quick actions -->
+          <div class="mb-6">
+            <h2 class="text-sm font-semibold text-gray-300 mb-3">Acciones rápidas</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-3 gap-3">
+              <button @click="view='clientes'; loadClients()" class="card hover:border-purple-500/40 transition-all text-left group cursor-pointer">
+                <div class="text-xl mb-2">👥</div>
+                <div class="text-sm font-semibold text-white">Gestionar clientes</div>
+                <div class="text-xs text-gray-500 mt-1">Agregar o editar clientes</div>
+              </button>
+              <button @click="view='modulos'" class="card hover:border-purple-500/40 transition-all text-left group cursor-pointer">
+                <div class="text-xl mb-2">🧠</div>
+                <div class="text-sm font-semibold text-white">Ejecutar módulo</div>
+                <div class="text-xs text-gray-500 mt-1">Investigación, estrategia, etc.</div>
+              </button>
+              <button @click="runNow()" :disabled="runningNow" class="card hover:border-green-500/40 transition-all text-left cursor-pointer">
+                <div class="text-xl mb-2">📊</div>
+                <div class="text-sm font-semibold text-white">Reporte ahora</div>
+                <div class="text-xs text-gray-500 mt-1" x-text="runningNow ? 'Generando...' : 'Enviar a Telegram ya'"></div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Recent reports -->
+          <div>
+            <h2 class="text-sm font-semibold text-gray-300 mb-3">Últimos reportes</h2>
+            <div class="space-y-2">
+              <template x-for="r in reports.slice(0,5)" :key="r.id">
+                <div class="card flex items-center gap-4">
+                  <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0"
+                    :style="typeBadgeStyle(r.type)">
+                    <span x-text="typeIcon(r.type)"></span>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm font-medium text-white truncate" x-text="r.title"></div>
+                    <div class="text-xs text-gray-500" x-text="formatDate(r.created_at)"></div>
+                  </div>
+                  <button @click="openReport(r)" class="text-xs text-purple-400 hover:text-purple-300">Ver</button>
+                </div>
+              </template>
+              <div x-show="reports.length === 0" class="text-center py-8 text-gray-500 text-sm">
+                No hay reportes aún. Genera el primero arriba.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== CLIENTES ========== -->
+        <div x-show="view==='clientes'">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h1 class="text-2xl font-bold text-white">Clientes</h1>
+              <p class="text-gray-400 text-sm mt-1">Gestiona los perfiles de tus clientes</p>
+            </div>
+            <button @click="openClientModal(null)" class="btn-primary">+ Nuevo cliente</button>
+          </div>
+
+          <div x-show="clients.length === 0" class="card text-center py-12">
+            <div class="text-4xl mb-3">👥</div>
+            <div class="text-gray-400 text-sm">No hay clientes aún</div>
+            <button @click="openClientModal(null)" class="btn-primary mt-4">Agregar primer cliente</button>
+          </div>
+
+          <div class="grid gap-4">
+            <template x-for="c in clients" :key="c.id">
+              <div class="card flex items-center gap-4">
+                <div class="w-10 h-10 rounded-full flex items-center justify-center text-lg flex-shrink-0 font-bold"
+                  style="background:linear-gradient(135deg,#7c3aed33,#4f46e533);color:#a78bfa"
+                  x-text="c.name.charAt(0).toUpperCase()"></div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2">
+                    <span class="font-semibold text-white" x-text="c.name"></span>
+                    <span x-show="!c.active" class="badge" style="background:#ef444422;color:#f87171">Inactivo</span>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-0.5" x-text="c.niche || 'Sin nicho definido'"></div>
+                  <div class="flex gap-3 mt-1">
+                    <span x-show="c.instagram" class="text-xs text-gray-500">📷 IG</span>
+                    <span x-show="c.tiktok" class="text-xs text-gray-500">🎵 TT</span>
+                    <span x-show="c.facebook" class="text-xs text-gray-500">👤 FB</span>
+                    <span x-show="c.youtube" class="text-xs text-gray-500">▶️ YT</span>
+                  </div>
+                </div>
+                <div class="flex gap-2">
+                  <button @click="openClientModal(c)" class="btn-secondary text-xs">Editar</button>
+                  <button @click="deleteClient(c.id)" class="btn-danger text-xs">Eliminar</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- ========== MÓDULOS ========== -->
+        <div x-show="view==='modulos'">
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-white">Módulos de Marketing IA</h1>
+            <p class="text-gray-400 text-sm mt-1">6 herramientas especializadas para Samuel</p>
+          </div>
+
+          <div class="grid gap-4">
+            <template x-for="mod in modules" :key="mod.key">
+              <div class="card">
+                <div class="flex items-center gap-3 mb-3 cursor-pointer" @click="mod.open = !mod.open">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
+                    :style="`background:${mod.color}22`" x-text="mod.icon"></div>
+                  <div class="flex-1">
+                    <div class="font-semibold text-white" x-text="mod.title"></div>
+                    <div class="text-xs text-gray-400" x-text="mod.desc"></div>
+                  </div>
+                  <svg class="w-4 h-4 text-gray-500 transition-transform" :class="mod.open ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                </div>
+
+                <div x-show="mod.open" x-transition class="border-t border-white/5 pt-4 space-y-3">
+                  <!-- Client selector -->
+                  <div>
+                    <label class="label">Cliente (opcional)</label>
+                    <select x-model="mod.clientId" class="input">
+                      <option value="">Sin cliente específico</option>
+                      <template x-for="c in clients.filter(c=>c.active)" :key="c.id">
+                        <option :value="c.id" x-text="c.name"></option>
+                      </template>
+                    </select>
+                  </div>
+                  <!-- Context input -->
+                  <div>
+                    <label class="label" x-text="mod.inputLabel"></label>
+                    <textarea x-model="mod.context" class="textarea" rows="4" :placeholder="mod.placeholder"></textarea>
+                  </div>
+                  <button @click="runModule(mod)" :disabled="mod.loading || !mod.context.trim()"
+                    class="btn-primary w-full" x-text="mod.loading ? 'Analizando con IA...' : 'Ejecutar módulo'"></button>
+
+                  <!-- Result -->
+                  <div x-show="mod.result" class="rounded-xl p-4 text-sm text-gray-200 leading-relaxed"
+                    style="background:#0a0a0f;border:1px solid rgba(124,58,237,0.2)">
+                    <div class="flex items-center justify-between mb-2">
+                      <span class="text-xs font-semibold text-purple-400">Resultado</span>
+                      <button @click="copyText(mod.result)" class="text-xs text-gray-500 hover:text-gray-300">📋 Copiar</button>
+                    </div>
+                    <pre class="text-xs" x-text="mod.result"></pre>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- ========== MONITOR ========== -->
+        <div x-show="view==='monitor'">
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-white">Monitor 24/7</h1>
+            <p class="text-gray-400 text-sm mt-1">Análisis automático de mercado — reporte diario a las 8am</p>
+          </div>
+
+          <!-- Status card -->
+          <div class="card mb-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                  :style="monitorActive ? 'background:#16a34a22' : 'background:#ef444422'">
+                  <span x-text="monitorActive ? '📡' : '⏸'"></span>
+                </div>
+                <div>
+                  <div class="font-semibold text-white" x-text="monitorActive ? 'Monitor activo' : 'Monitor pausado'"></div>
+                  <div class="text-xs text-gray-400" x-text="monitorActive ? 'Reporte diario a las 8:00am' : 'Los reportes automáticos están pausados'"></div>
+                </div>
+              </div>
+              <div class="flex gap-2">
+                <button x-show="!monitorActive" @click="startMonitor()" class="btn-primary">▶ Activar</button>
+                <button x-show="monitorActive" @click="stopMonitor()" class="btn-secondary">⏸ Pausar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Run now -->
+          <div class="card mb-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="font-semibold text-white">Generar reporte ahora</div>
+                <div class="text-xs text-gray-400 mt-0.5">Analiza el mercado y envía a Telegram inmediatamente</div>
+              </div>
+              <button @click="runNow()" :disabled="runningNow" class="btn-primary" style="background:linear-gradient(135deg,#059669,#047857)">
+                <span x-text="runningNow ? '⏳ Generando...' : '📤 Enviar ahora'"></span>
+              </button>
+            </div>
+            <div x-show="runNowResult" class="mt-4 rounded-xl p-4 text-xs text-gray-300 leading-relaxed"
+              style="background:#0a0a0f;border:1px solid #16a34a33">
+              <pre x-text="runNowResult"></pre>
+            </div>
+          </div>
+
+          <!-- Recent reports -->
+          <div>
+            <h2 class="text-sm font-semibold text-gray-300 mb-3">Historial de reportes</h2>
+            <div class="space-y-2">
+              <template x-for="r in recentMonitorReports" :key="r.id">
+                <div class="card flex items-center gap-3">
+                  <div class="text-lg">📊</div>
+                  <div class="flex-1 min-w-0">
+                    <div class="text-sm text-white" x-text="r.title"></div>
+                    <div class="text-xs text-gray-500" x-text="formatDate(r.created_at)"></div>
+                  </div>
+                  <button @click="openReport(r)" class="text-xs text-purple-400 hover:text-purple-300">Ver</button>
+                </div>
+              </template>
+              <div x-show="recentMonitorReports.length === 0" class="text-center py-6 text-gray-500 text-sm">
+                Aún no hay reportes. Haz clic en "Enviar ahora" para generar el primero.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== REPORTES ========== -->
+        <div x-show="view==='reportes'">
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-white">Todos los Reportes</h1>
+            <p class="text-gray-400 text-sm mt-1">Historial completo de análisis generados</p>
+          </div>
+
+          <div class="space-y-2">
+            <template x-for="r in reports" :key="r.id">
+              <div class="card flex items-center gap-4 cursor-pointer hover:border-purple-500/30 transition-all" @click="openReport(r)">
+                <div class="w-9 h-9 rounded-xl flex items-center justify-center text-base flex-shrink-0"
+                  :style="typeBadgeStyle(r.type)">
+                  <span x-text="typeIcon(r.type)"></span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-white truncate" x-text="r.title"></div>
+                  <div class="flex items-center gap-3 mt-0.5">
+                    <span class="text-xs text-gray-500" x-text="formatDate(r.created_at)"></span>
+                    <span class="badge text-xs" :style="typeBadgeStyle(r.type)" x-text="typeLabel(r.type)"></span>
+                  </div>
+                </div>
+                <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </div>
+            </template>
+            <div x-show="reports.length === 0" class="text-center py-12 text-gray-500 text-sm">
+              No hay reportes aún. Ejecuta un módulo o genera un reporte de mercado.
+            </div>
+          </div>
+        </div>
+
+        <!-- ========== CONFIGURACIÓN ========== -->
+        <div x-show="view==='config'">
+          <div class="mb-6">
+            <h1 class="text-2xl font-bold text-white">Configuración</h1>
+            <p class="text-gray-400 text-sm mt-1">Ajusta el monitor y las notificaciones</p>
+          </div>
+
+          <div class="space-y-4">
+            <!-- Report schedule -->
+            <div class="card">
+              <h3 class="font-semibold text-white mb-4">Horario del reporte diario</h3>
+              <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="label">Hora (0-23)</label>
+                  <input type="number" x-model.number="settingsForm.report_hour" min="0" max="23" class="input" />
+                </div>
+                <div>
+                  <label class="label">Minuto (0-59)</label>
+                  <input type="number" x-model.number="settingsForm.report_minute" min="0" max="59" class="input" />
+                </div>
+              </div>
+              <div>
+                <label class="label">Palabras clave del monitor (separadas por coma)</label>
+                <textarea x-model="settingsForm.monitor_keywords" class="textarea" rows="2"
+                  placeholder="marketing digital, redes sociales, publicidad..."></textarea>
+              </div>
+            </div>
+
+            <!-- Telegram -->
+            <div class="card">
+              <h3 class="font-semibold text-white mb-1">Telegram</h3>
+              <p class="text-xs text-gray-400 mb-4">Bot: @ChatEmployed_bot · Chat ID configurado</p>
+              <button @click="testTelegram()" :disabled="testingTelegram" class="btn-secondary">
+                <span x-text="testingTelegram ? 'Enviando...' : '📱 Probar conexión Telegram'"></span>
+              </button>
+              <div x-show="telegramTestResult !== null" class="mt-3 text-sm"
+                :class="telegramTestResult ? 'text-green-400' : 'text-red-400'"
+                x-text="telegramTestResult ? '✅ Mensaje enviado correctamente' : '❌ Error al enviar — revisa el token'"></div>
+            </div>
+
+            <button @click="saveSettings()" :disabled="savingSettings" class="btn-primary w-full">
+              <span x-text="savingSettings ? 'Guardando...' : 'Guardar configuración'"></span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div><!-- end MAIN APP -->
+
+  <!-- ========== MODAL CLIENTE ========== -->
+  <div x-show="showClientModal" x-transition class="modal-bg" @click.self="showClientModal=false">
+    <div class="modal">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-bold text-white" x-text="editingClient ? 'Editar cliente' : 'Nuevo cliente'"></h2>
+        <button @click="showClientModal=false" class="text-gray-500 hover:text-white text-xl">×</button>
+      </div>
+      <form @submit.prevent="saveClient()" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="label">Nombre del cliente *</label>
+            <input type="text" x-model="clientForm.name" class="input" placeholder="Ej: Clínica Estética Luna" required />
+          </div>
+          <div>
+            <label class="label">Nicho / Industria</label>
+            <input type="text" x-model="clientForm.niche" class="input" placeholder="Ej: Clínica estética" />
+          </div>
+          <div>
+            <label class="label">Audiencia objetivo</label>
+            <input type="text" x-model="clientForm.target_audience" class="input" placeholder="Ej: Mujeres 25-45" />
+          </div>
+          <div class="col-span-2">
+            <label class="label">Descripción del negocio</label>
+            <textarea x-model="clientForm.description" class="textarea" rows="2" placeholder="Qué hace, qué vende, cómo funciona..."></textarea>
+          </div>
+          <div class="col-span-2">
+            <label class="label">Tono de marca</label>
+            <input type="text" x-model="clientForm.brand_tone" class="input" placeholder="Ej: Profesional, aspiracional, cálido" />
+          </div>
+          <div>
+            <label class="label">Instagram</label>
+            <input type="text" x-model="clientForm.instagram" class="input" placeholder="@usuario" />
+          </div>
+          <div>
+            <label class="label">TikTok</label>
+            <input type="text" x-model="clientForm.tiktok" class="input" placeholder="@usuario" />
+          </div>
+          <div>
+            <label class="label">Facebook</label>
+            <input type="text" x-model="clientForm.facebook" class="input" placeholder="url o nombre de página" />
+          </div>
+          <div>
+            <label class="label">YouTube</label>
+            <input type="text" x-model="clientForm.youtube" class="input" placeholder="@canal o URL" />
+          </div>
+          <div class="col-span-2">
+            <label class="label">Sitio web</label>
+            <input type="text" x-model="clientForm.website" class="input" placeholder="https://..." />
+          </div>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="submit" :disabled="savingClient" class="btn-primary flex-1"
+            x-text="savingClient ? 'Guardando...' : (editingClient ? 'Guardar cambios' : 'Crear cliente')"></button>
+          <button type="button" @click="showClientModal=false" class="btn-secondary">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ========== MODAL REPORTE ========== -->
+  <div x-show="showReportModal" x-transition class="modal-bg" @click.self="showReportModal=false">
+    <div class="modal" style="max-width:700px">
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-base font-bold text-white" x-text="selectedReport?.title"></h2>
+        <div class="flex gap-2">
+          <button @click="copyText(selectedReport?.content)" class="btn-secondary text-xs">📋 Copiar</button>
+          <button @click="showReportModal=false" class="text-gray-500 hover:text-white text-xl ml-2">×</button>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500 mb-4" x-text="selectedReport ? formatDate(selectedReport.created_at) : ''"></div>
+      <div class="rounded-xl p-4 text-sm text-gray-200 leading-relaxed" style="background:#0a0a0f;border:1px solid rgba(255,255,255,0.08)">
+        <pre class="text-xs leading-relaxed" x-text="selectedReport?.content"></pre>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function app() {
+      return {
+        // Auth
+        authenticated: false,
+        loginPassword: '',
+        loginError: '',
+        loginLoading: false,
+        _password: '',
+
+        view: 'home',
+        clients: [],
+        reports: [],
+        monitorActive: false,
+        recentMonitorReports: [],
+        runningNow: false,
+        runNowResult: '',
+
+        // Client modal
+        showClientModal: false,
+        editingClient: null,
+        savingClient: false,
+        clientForm: {},
+
+        // Report modal
+        showReportModal: false,
+        selectedReport: null,
+
+        // Settings
+        settingsForm: { report_hour: 8, report_minute: 0, monitor_keywords: '' },
+        savingSettings: false,
+        testingTelegram: false,
+        telegramTestResult: null,
+
+        // Modules
+        modules: [
+          { key: 'investigacion', title: '1. Investigación', icon: '🔍', color: '#7c3aed',
+            desc: 'Nicho, competencia, tendencias, anuncios, hooks y oportunidades',
+            inputLabel: 'Describe el nicho y competidores a investigar',
+            placeholder: 'Ej: Investiga el mercado de clínicas estéticas en Colombia. Competidores: @clinicaX, @clinicaY...',
+            open: false, context: '', clientId: '', loading: false, result: '' },
+          { key: 'diagnostico', title: '2. Diagnóstico', icon: '🩺', color: '#0ea5e9',
+            desc: 'Análisis de redes sociales, branding, perfil, embudo y métricas',
+            inputLabel: 'Pega los links de redes sociales y describe el estado actual',
+            placeholder: 'IG: @cliente_ig con 5k seguidores. Los posts tienen 50 likes. Bio dice: "Clínica estética"...',
+            open: false, context: '', clientId: '', loading: false, result: '' },
+          { key: 'estrategia', title: '3. Estrategia', icon: '🎯', color: '#f59e0b',
+            desc: 'Posicionamiento, oferta, embudo, pilares de contenido y plan de crecimiento',
+            inputLabel: 'Contexto estratégico y objetivos del cliente',
+            placeholder: 'El cliente quiere doblar ventas en 3 meses. Su servicio estrella son los tratamientos faciales...',
+            open: false, context: '', clientId: '', loading: false, result: '' },
+          { key: 'produccion', title: '4. Producción', icon: '🎬', color: '#10b981',
+            desc: 'Ideas de contenido, hooks, guiones, CTAs y calendario mensual',
+            inputLabel: 'Qué tipo de contenido necesitas y para qué plataforma',
+            placeholder: 'Necesito 10 ideas de Reels para Instagram + 5 guiones con hook para TikTok. Tema: resultados de tratamientos...',
+            open: false, context: '', clientId: '', loading: false, result: '' },
+          { key: 'optimizacion', title: '5. Optimización', icon: '📈', color: '#ef4444',
+            desc: 'Qué funciona, qué eliminar, qué repetir — con el PORQUÉ',
+            inputLabel: 'Pega los datos de rendimiento (views, likes, ventas, CTR, etc.)',
+            placeholder: 'Video 1: 50k views, 200 likes, 5 ventas. Video 2: 10k views, 500 likes, 0 ventas. Anuncio A: CTR 2%, CPL $8...',
+            open: false, context: '', clientId: '', loading: false, result: '' },
+          { key: 'seguimiento', title: '6. Seguimiento', icon: '📋', color: '#8b5cf6',
+            desc: 'Informe post-mentoría, decisiones, tareas y comparación entre sesiones',
+            inputLabel: 'Notas de la sesión de hoy',
+            placeholder: 'Sesión de hoy 14/07: Revisamos las métricas del último mes. El cliente decidió pausar Facebook y enfocarse en TikTok. Tareas asignadas: grabar 3 videos esta semana...',
+            open: false, context: '', clientId: '', loading: false, result: '' },
+        ],
+
+        async boot() {
+          const saved = sessionStorage.getItem('sai_pass');
+          if (saved) {
+            const ok = await this._checkPassword(saved);
+            if (ok) { this._password = saved; this.authenticated = true; await this.init(); }
+          }
+        },
+
+        async login() {
+          this.loginLoading = true;
+          this.loginError = '';
+          const ok = await this._checkPassword(this.loginPassword);
+          if (ok) {
+            this._password = this.loginPassword;
+            sessionStorage.setItem('sai_pass', this.loginPassword);
+            this.authenticated = true;
+            await this.init();
+          } else {
+            this.loginError = 'Contraseña incorrecta';
+          }
+          this.loginLoading = false;
+        },
+
+        async _checkPassword(pwd) {
+          try {
+            const r = await fetch('/api/settings/', { headers: { 'X-App-Password': pwd } });
+            return r.ok;
+          } catch { return false; }
+        },
+
+        _headers() {
+          return { 'Content-Type': 'application/json', 'X-App-Password': this._password };
+        },
+
+        async init() {
+          await Promise.all([this.loadClients(), this.loadReports(), this.loadMonitorStatus()]);
+        },
+
+        async loadClients() {
+          const r = await fetch('/api/clients/', { headers: this._headers() });
+          this.clients = await r.json();
+        },
+
+        async loadReports() {
+          const r = await fetch('/api/monitor/reports?limit=30', { headers: this._headers() });
+          this.reports = await r.json();
+        },
+
+        async loadMonitorStatus() {
+          const r = await fetch('/api/monitor/status', { headers: this._headers() });
+          const data = await r.json();
+          this.monitorActive = data.active;
+          this.recentMonitorReports = data.recent_reports;
+        },
+
+        async startMonitor() {
+          await fetch('/api/monitor/start', { method: 'POST', headers: this._headers() });
+          this.monitorActive = true;
+        },
+
+        async stopMonitor() {
+          await fetch('/api/monitor/stop', { method: 'POST', headers: this._headers() });
+          this.monitorActive = false;
+        },
+
+        async runNow() {
+          this.runningNow = true;
+          this.runNowResult = '';
+          try {
+            const r = await fetch('/api/monitor/run-now', { method: 'POST', headers: this._headers() });
+            const data = await r.json();
+            this.runNowResult = data.report;
+            await this.loadReports();
+            await this.loadMonitorStatus();
+          } finally {
+            this.runningNow = false;
+          }
+        },
+
+        openClientModal(client) {
+          this.editingClient = client;
+          this.clientForm = client ? { ...client } : {
+            name: '', niche: '', description: '', instagram: '', tiktok: '',
+            facebook: '', youtube: '', website: '', brand_tone: '', target_audience: ''
+          };
+          this.showClientModal = true;
+        },
+
+        async saveClient() {
+          this.savingClient = true;
+          try {
+            const method = this.editingClient ? 'PUT' : 'POST';
+            const url = this.editingClient ? `/api/clients/${this.editingClient.id}` : '/api/clients/';
+            await fetch(url, { method, headers: this._headers(), body: JSON.stringify(this.clientForm) });
+            await this.loadClients();
+            this.showClientModal = false;
+          } finally {
+            this.savingClient = false;
+          }
+        },
+
+        async deleteClient(id) {
+          if (!confirm('¿Eliminar este cliente? Los reportes asociados se conservarán.')) return;
+          await fetch(`/api/clients/${id}`, { method: 'DELETE', headers: this._headers() });
+          await this.loadClients();
+        },
+
+        async runModule(mod) {
+          if (!mod.context.trim()) return;
+          mod.loading = true;
+          mod.result = '';
+          try {
+            const r = await fetch(`/api/modules/${mod.key}`, {
+              method: 'POST',
+              headers: this._headers(),
+              body: JSON.stringify({ client_id: mod.clientId || null, context: mod.context })
+            });
+            const data = await r.json();
+            mod.result = data.result;
+            await this.loadReports();
+          } finally {
+            mod.loading = false;
+          }
+        },
+
+        async loadSettings() {
+          const r = await fetch('/api/settings/', { headers: this._headers() });
+          const data = await r.json();
+          this.settingsForm = {
+            report_hour: parseInt(data.report_hour || '8'),
+            report_minute: parseInt(data.report_minute || '0'),
+            monitor_keywords: data.monitor_keywords || '',
+          };
+        },
+
+        async saveSettings() {
+          this.savingSettings = true;
+          try {
+            await fetch('/api/settings/', {
+              method: 'PUT',
+              headers: this._headers(),
+              body: JSON.stringify(this.settingsForm)
+            });
+          } finally {
+            this.savingSettings = false;
+          }
+        },
+
+        async testTelegram() {
+          this.testingTelegram = true;
+          this.telegramTestResult = null;
+          try {
+            const r = await fetch('/api/settings/test-telegram', { method: 'POST', headers: this._headers() });
+            const data = await r.json();
+            this.telegramTestResult = data.ok;
+          } finally {
+            this.testingTelegram = false;
+          }
+        },
+
+        openReport(r) {
+          this.selectedReport = r;
+          this.showReportModal = true;
+        },
+
+        copyText(text) {
+          if (!text) return;
+          navigator.clipboard.writeText(text).catch(() => {});
+        },
+
+        formatDate(dt) {
+          if (!dt) return '';
+          return new Date(dt + 'Z').toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+        },
+
+        typeIcon(type) {
+          const icons = { daily: '📊', investigacion: '🔍', diagnostico: '🩺', estrategia: '🎯', produccion: '🎬', optimizacion: '📈', seguimiento: '📋' };
+          return icons[type] || '📄';
+        },
+
+        typeLabel(type) {
+          const labels = { daily: 'Diario', investigacion: 'Investigación', diagnostico: 'Diagnóstico', estrategia: 'Estrategia', produccion: 'Producción', optimizacion: 'Optimización', seguimiento: 'Seguimiento' };
+          return labels[type] || type;
+        },
+
+        typeBadgeStyle(type) {
+          const colors = { daily: '#059669', investigacion: '#7c3aed', diagnostico: '#0ea5e9', estrategia: '#f59e0b', produccion: '#10b981', optimizacion: '#ef4444', seguimiento: '#8b5cf6' };
+          const c = colors[type] || '#6b7280';
+          return `background:${c}22;color:${c}`;
+        },
+      };
+    }
+  </script>
+</body>
+</html>
