@@ -45,6 +45,11 @@ async def auth_middleware(request: Request, call_next):
     return await call_next(request)
 
 
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
+
+
 app.include_router(clients.router, prefix="/api/clients", tags=["clients"])
 app.include_router(monitor.router, prefix="/api/monitor", tags=["monitor"])
 app.include_router(modules.router, prefix="/api/modules", tags=["modules"])
