@@ -6,15 +6,27 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 import sys
 import os
+import logging
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 load_dotenv(ROOT / ".env")
 
+LOG_PATH = ROOT / "data" / "app.log"
+LOG_PATH.parent.mkdir(exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
+    handlers=[
+        logging.FileHandler(str(LOG_PATH), encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
+
 from backend.database import init_db
 from backend.services.scheduler import start_scheduler, stop_scheduler
-from backend.routers import clients, monitor, modules, settings
+from backend.routers import clients, monitor, modules, settings, logs
 
 
 @asynccontextmanager
@@ -54,6 +66,7 @@ app.include_router(clients.router, prefix="/api/clients", tags=["clients"])
 app.include_router(monitor.router, prefix="/api/monitor", tags=["monitor"])
 app.include_router(modules.router, prefix="/api/modules", tags=["modules"])
 app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
+app.include_router(logs.router, prefix="/api/logs", tags=["logs"])
 
 DASHBOARD = ROOT / "dashboard"
 app.mount("/", StaticFiles(directory=str(DASHBOARD), html=True), name="dashboard")

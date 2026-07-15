@@ -47,7 +47,7 @@ def init_db():
     """)
 
     defaults = [
-        ("report_hour", "8"),
+        ("report_hour", "6"),
         ("report_minute", "0"),
         ("monitor_active", "true"),
         ("monitor_keywords", "marketing digital,redes sociales,publicidad,ventas,contenido viral"),
