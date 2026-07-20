@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 
 class ClientCreate(BaseModel):
@@ -29,3 +29,22 @@ class SettingsUpdate(BaseModel):
     report_hour: int = 8
     report_minute: int = 0
     monitor_keywords: str = "marketing digital,redes sociales,publicidad,ventas,contenido viral"
+
+
+class WorkflowCreate(BaseModel):
+    client_id: int
+    name: str
+    focus: Optional[str] = None
+    event_type: Optional[str] = None        # conferencia|lanzamiento|campaña|apertura|colaboracion|otro
+    event_description: Optional[str] = None
+    event_date: Optional[str] = None        # YYYY-MM-DD
+    timeline_type: str = "mensual"          # urgente|corto|mensual|continuo
+
+
+class WorkflowContinue(BaseModel):
+    samuel_notes: Optional[str] = None
+    samuel_choice: str = "continue"         # continue|skip
+
+
+class WorkflowRegenerate(BaseModel):
+    samuel_notes: str

@@ -26,7 +26,7 @@ logging.basicConfig(
 
 from backend.database import init_db
 from backend.services.scheduler import start_scheduler, stop_scheduler
-from backend.routers import clients, monitor, modules, settings, logs
+from backend.routers import clients, monitor, modules, settings, logs, workflows
 
 
 @asynccontextmanager
@@ -67,6 +67,7 @@ app.include_router(monitor.router, prefix="/api/monitor", tags=["monitor"])
 app.include_router(modules.router, prefix="/api/modules", tags=["modules"])
 app.include_router(settings.router, prefix="/api/settings", tags=["settings"])
 app.include_router(logs.router, prefix="/api/logs", tags=["logs"])
+app.include_router(workflows.router, prefix="/api/workflows", tags=["workflows"])
 
 DASHBOARD = ROOT / "dashboard"
 app.mount("/", StaticFiles(directory=str(DASHBOARD), html=True), name="dashboard")

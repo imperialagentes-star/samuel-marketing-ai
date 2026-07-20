@@ -44,6 +44,35 @@ def init_db():
             key TEXT PRIMARY KEY,
             value TEXT
         );
+
+        CREATE TABLE IF NOT EXISTS workflows (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            client_id INTEGER REFERENCES clients(id),
+            name TEXT NOT NULL,
+            focus TEXT,
+            event_type TEXT,
+            event_description TEXT,
+            event_date TEXT,
+            timeline_type TEXT DEFAULT 'mensual',
+            status TEXT DEFAULT 'active',
+            current_step INTEGER DEFAULT 0,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        );
+
+        CREATE TABLE IF NOT EXISTS workflow_steps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            workflow_id INTEGER REFERENCES workflows(id),
+            step_order INTEGER NOT NULL,
+            step_type TEXT NOT NULL,
+            planned_date TEXT,
+            priority TEXT DEFAULT 'normal',
+            status TEXT DEFAULT 'pending',
+            result TEXT,
+            samuel_notes TEXT,
+            samuel_choice TEXT,
+            created_at TEXT DEFAULT (datetime('now'))
+        );
     """)
 
     defaults = [

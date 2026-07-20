@@ -224,6 +224,11 @@ textarea.form-input { resize:vertical; min-height:80px; }
       <span class="nav-icon">📋</span> Reportes
     </div>
 
+    <div class="nav-item" :class="{active:page==='flujos'}" @click="navigate('flujos')">
+      <span class="nav-icon">🔄</span> Flujos
+      <span class="nav-badge" x-show="pendingCount>0" x-text="pendingCount" style="background:var(--danger);animation:pulse 2s infinite"></span>
+    </div>
+
     <div class="nav-section" style="margin-top:4px">Sistema</div>
     <div class="nav-item" :class="{active:page==='logs'}" @click="navigate('logs')">
       <span class="nav-icon">🖥️</span> Logs
@@ -278,10 +283,11 @@ textarea.form-input { resize:vertical; min-height:80px; }
               <span style="font-size:18px;font-weight:700" x-text="monitorActive?'Activo':'Pausado'"></span>
             </div>
           </div>
-          <div class="card card-sm">
-            <div class="kpi-label"><span>Agentes IA</span><span>🧠</span></div>
-            <div class="kpi-value">6</div>
-            <div class="kpi-sub">módulos disponibles</div>
+          <div class="card card-sm" @click="navigate('flujos')" style="cursor:pointer">
+            <div class="kpi-label"><span>Flujos</span><span>🔄</span></div>
+            <div class="kpi-value" x-text="workflows.length||'—'"></div>
+            <div class="kpi-sub" x-show="pendingCount>0" style="color:#f59e0b" x-text="pendingCount+' checkpoint(s) pendiente(s)'"></div>
+            <div class="kpi-sub" x-show="pendingCount===0">sin checkpoints pendientes</div>
           </div>
         </div>
 
@@ -652,6 +658,229 @@ textarea.form-input { resize:vertical; min-height:80px; }
         </div>
       </div>
 
+      <!-- ===== FLUJOS ===== -->
+      <div x-show="page==='flujos'" class="fade-in">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+      <div>
+        <h2 style="font-size:20px;font-weight:700;margin:0">🔄 Motor de Flujos</h2>
+        <p style="color:var(--muted);font-size:13px;margin:4px 0 0">Procesos encadenados con IA — metodología completa</p>
+      </div>
+      <button class="btn btn-primary" @click="openWorkflowModal()">+ Nuevo flujo</button>
+    </div>
+
+    <!-- KPIs -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px">
+      <div class="card" style="padding:20px">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Total flujos</div>
+        <div style="font-size:28px;font-weight:700" x-text="workflows.length"></div>
+      </div>
+      <div class="card" style="padding:20px">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Checkpoints pendientes</div>
+        <div style="font-size:28px;font-weight:700;color:#f59e0b" x-text="pendingCount"></div>
+      </div>
+      <div class="card" style="padding:20px">
+        <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Completados</div>
+        <div style="font-size:28px;font-weight:700;color:#22c55e" x-text="workflows.filter(w=>w.status==='completed').length"></div>
+      </div>
+    </div>
+
+    <!-- Loading -->
+    <div x-show="loadingWorkflows" style="text-align:center;padding:40px;color:var(--muted)">
+      <span class="spinner"></span> Cargando flujos...
+    </div>
+
+    <!-- Empty -->
+    <div x-show="!loadingWorkflows && workflows.length===0" class="card" style="padding:48px;text-align:center;color:var(--muted)">
+      <div style="font-size:40px;margin-bottom:12px">🔄</div>
+      <div style="font-weight:600;margin-bottom:6px">Sin flujos activos</div>
+      <div style="font-size:13px">Crea el primer flujo para comenzar el proceso completo de marketing</div>
+    </div>
+
+    <!-- Workflow cards -->
+    <template x-for="wf in workflows" :key="wf.id">
+      <div class="card" style="padding:20px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">
+          <div>
+            <div style="font-weight:600;font-size:15px" x-text="wf.name"></div>
+            <div style="font-size:12px;color:var(--muted);margin-top:3px" x-text="wf.client_name"></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+            <span class="badge" :class="wfTimelineBadge(wf.timeline_type)" x-text="wf.timeline_type"></span>
+            <span x-show="wf.event_type" class="badge" :class="wfEventBadge(wf.event_type)" x-text="wf.event_type"></span>
+            <span x-show="wf.event_date" style="font-size:11px;color:var(--muted)" x-text="'📅 '+wf.event_date"></span>
+          </div>
+        </div>
+
+        <!-- 8-step progress dots -->
+        <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">
+          <template x-for="(s, i) in (wf.steps||[])" :key="i">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;min-width:60px">
+              <div style="width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff"
+                :style="`background:${wfStepColor(s.status)}`"
+                :title="wfStepLabel(s.step_type)+' — '+s.status">
+                <span x-text="i+1"></span>
+              </div>
+              <div style="font-size:9px;color:var(--muted);text-align:center" x-text="wfStepLabel(s.step_type)"></div>
+              <div x-show="s.planned_date" style="font-size:9px;color:var(--dim)" x-text="s.planned_date?.slice(5)"></div>
+            </div>
+          </template>
+        </div>
+
+        <!-- Actions -->
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button x-show="(wf.steps||[]).some(s=>s.status==='waiting_samuel')"
+            class="btn btn-sm" style="background:#f59e0b22;color:#f59e0b;border:1px solid #f59e0b44"
+            @click="openCheckpointFor(wf.id)">
+            ⏳ Tu decisión pendiente
+          </button>
+          <button x-show="!(wf.steps||[]).some(s=>s.status==='waiting_samuel') && (wf.steps||[]).some(s=>s.status==='pending')"
+            class="btn btn-primary btn-sm"
+            :disabled="runningStep===wf.id"
+            @click="startNextStep(wf.id)">
+            <span x-show="runningStep===wf.id" class="spinner"></span>
+            <span x-text="runningStep===wf.id?'Ejecutando...':'▶ Ejecutar siguiente paso'"></span>
+          </button>
+          <span x-show="(wf.steps||[]).every(s=>['approved','skipped'].includes(s.status))"
+            style="font-size:12px;color:#22c55e;align-self:center">✅ Completado</span>
+        </div>
+      </div>
+    </template>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Nuevo flujo -->
+<div class="modal-backdrop" x-show="showWorkflowModal" @click.self="showWorkflowModal=false">
+  <div class="modal modal-lg" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-header">
+      <div class="modal-title">🔄 Nuevo flujo</div>
+      <button class="btn btn-ghost btn-icon" @click="showWorkflowModal=false">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label">Cliente *</label>
+          <select class="form-input" x-model="workflowForm.client_id">
+            <option value="">Seleccionar cliente...</option>
+            <template x-for="c in clients" :key="c.id">
+              <option :value="c.id" x-text="c.name"></option>
+            </template>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Nombre del flujo *</label>
+          <input class="form-input" x-model="workflowForm.name" placeholder="ej. Estrategia Q3 2026">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Objetivo general</label>
+        <textarea class="form-input" x-model="workflowForm.focus" rows="2"
+          placeholder="ej. Aumentar visibilidad antes del lanzamiento de producto"></textarea>
+      </div>
+
+      <div style="background:var(--surface-2);border-radius:10px;padding:16px;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:0">
+          <input type="checkbox" x-model="workflowForm.has_event" style="width:16px;height:16px">
+          <span style="font-weight:600;font-size:14px">¿Tiene fecha límite o evento?</span>
+        </label>
+
+        <div x-show="workflowForm.has_event" style="margin-top:16px">
+          <div class="form-grid" style="margin-bottom:12px">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Tipo de evento</label>
+              <select class="form-input" x-model="workflowForm.event_type">
+                <option value="conferencia">Conferencia / Evento presencial</option>
+                <option value="lanzamiento">Lanzamiento de producto o servicio</option>
+                <option value="campaña">Campaña de temporada</option>
+                <option value="apertura">Apertura de local o sucursal</option>
+                <option value="colaboracion">Colaboración o alianza</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label">Fecha del evento</label>
+              <input type="date" class="form-input" x-model="workflowForm.event_date">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:0">
+            <label class="form-label">Descripción del evento *</label>
+            <textarea class="form-input" x-model="workflowForm.event_description" rows="3"
+              placeholder="ej. Conferencia anual de tecnología donde el cliente presenta su nuevo software. Habrá 300 asistentes. Queremos generar expectativa antes y publicar en vivo durante el evento."></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Modo de trabajo</label>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">
+          <template x-for="opt in [{v:'urgente',l:'⚡ Urgente',d:'1-7 días'},{v:'corto',l:'🏃 Corto',d:'8-21 días'},{v:'mensual',l:'📅 Mensual',d:'22-45 días'},{v:'continuo',l:'♾️ Continuo',d:'Sin fecha fija'}]" :key="opt.v">
+            <label :style="`display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;cursor:pointer;border:1px solid;border-color:${workflowForm.timeline_type===opt.v?'var(--gold)':'var(--border)'};background:${workflowForm.timeline_type===opt.v?'#d4af3715':'transparent'}`">
+              <input type="radio" :value="opt.v" x-model="workflowForm.timeline_type" style="accent-color:var(--gold)">
+              <div>
+                <div style="font-weight:600;font-size:13px" x-text="opt.l"></div>
+                <div style="font-size:11px;color:var(--muted)" x-text="opt.d"></div>
+              </div>
+            </label>
+          </template>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" @click="showWorkflowModal=false">Cancelar</button>
+      <button class="btn btn-primary" @click="createWorkflow()" :disabled="creatingWorkflow">
+        <span x-show="creatingWorkflow" class="spinner"></span>
+        <span x-text="creatingWorkflow?'Creando...':'🚀 Crear flujo'"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Checkpoint -->
+<div class="modal-backdrop" x-show="showCheckpointModal" @click.self="showCheckpointModal=false">
+  <div class="modal modal-lg" style="max-height:90vh;overflow-y:auto">
+    <div class="modal-header" style="border-bottom:1px solid #f59e0b44">
+      <div>
+        <div class="modal-title" style="color:#f59e0b">
+          ⏳ Checkpoint — <span x-text="wfStepLabel(activeCheckpoint?.step_type)"></span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px">
+          <span x-text="'Paso '+activeCheckpoint?.step_order+' de 8'"></span>
+          <span x-show="activeCheckpoint?.planned_date" x-text="' · '+activeCheckpoint?.planned_date"></span>
+          <span x-show="activeCheckpoint?.priority" class="badge badge-amber" style="margin-left:8px;font-size:10px" x-text="activeCheckpoint?.priority"></span>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-icon" @click="showCheckpointModal=false">✕</button>
+    </div>
+    <div class="modal-body">
+      <div style="background:#0d0d0d;border:1px solid var(--border);border-radius:8px;padding:20px;max-height:400px;overflow-y:auto;font-size:13px;line-height:1.7;white-space:pre-wrap;font-family:monospace;color:#e4e4e7"
+        x-text="activeCheckpoint?.result || 'Sin resultado aún...'"></div>
+
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label">Tus notas / ajustes para el siguiente paso</label>
+        <textarea class="form-input" x-model="activeCheckpoint._notes" rows="3"
+          placeholder="ej. Incluir más énfasis en Instagram. El cliente prefiere contenido en video corto..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer" style="gap:10px">
+      <button class="btn btn-ghost" @click="showCheckpointModal=false" :disabled="approvingStep">Cerrar</button>
+      <button class="btn btn-sm" style="background:#52525b22;color:#a1a1aa;border:1px solid #52525b"
+        @click="skipStep()" :disabled="approvingStep">
+        <span x-show="approvingStep" class="spinner"></span>
+        ⏭️ Omitir
+      </button>
+      <button class="btn btn-sm" style="background:#8b5cf622;color:#8b5cf6;border:1px solid #8b5cf644"
+        @click="regenerateStep()" :disabled="approvingStep">
+        🔄 Regenerar con ajuste
+      </button>
+      <button class="btn btn-primary" @click="approveStep()" :disabled="approvingStep">
+        <span x-show="approvingStep" class="spinner"></span>
+        ✅ Aprobar y continuar
+      </button>
     </div>
   </div>
 </div>
@@ -791,6 +1020,18 @@ function app() {
 
     page: 'dashboard',
 
+    workflows: [],
+    pendingCount: 0,
+    loadingWorkflows: false,
+    showWorkflowModal: false,
+    workflowForm: { client_id:'', name:'', focus:'', has_event:false, event_type:'', event_description:'', event_date:'', timeline_type:'mensual' },
+    creatingWorkflow: false,
+    showCheckpointModal: false,
+    activeCheckpoint: null,
+    activeWorkflowId: null,
+    approvingStep: false,
+    runningStep: false,
+
     clients: [],
     reports: [],
     filteredReports: [],
@@ -866,6 +1107,7 @@ function app() {
         this.loadClients(),
         this.loadReports(),
         this.loadMonitorStatus(),
+        this.loadWorkflowPending(),
       ]);
     },
 
@@ -920,6 +1162,7 @@ function app() {
       else if (p === 'reportes') await this.loadReports();
       else if (p === 'logs') await this.loadLogs();
       else if (p === 'ajustes') await this.loadSettings();
+      else if (p === 'flujos') await this.loadWorkflows();
     },
 
     async loadClients() {
@@ -1108,6 +1351,149 @@ function app() {
       }
     },
 
+    async loadWorkflows() {
+      this.loadingWorkflows = true;
+      try { this.workflows = await this.api('GET', '/workflows/'); }
+      catch (e) { this.toast('error', 'Error cargando flujos: ' + e.message); }
+      finally { this.loadingWorkflows = false; }
+    },
+
+    async loadWorkflowPending() {
+      try {
+        const data = await this.api('GET', '/workflows/pending');
+        this.pendingCount = data.reduce((s, w) => s + (w.pending_count || 0), 0);
+      } catch {}
+    },
+
+    openWorkflowModal() {
+      this.workflowForm = { client_id:'', name:'', focus:'', has_event:false, event_type:'conferencia', event_description:'', event_date:'', timeline_type:'mensual' };
+      this.showWorkflowModal = true;
+    },
+
+    async createWorkflow() {
+      if (!this.workflowForm.client_id) { this.toast('error', 'Selecciona un cliente'); return; }
+      if (!this.workflowForm.name?.trim()) { this.toast('error', 'El nombre es obligatorio'); return; }
+      if (this.workflowForm.has_event && !this.workflowForm.event_description?.trim()) { this.toast('error', 'Describe el evento'); return; }
+      this.creatingWorkflow = true;
+      try {
+        const body = {
+          client_id: parseInt(this.workflowForm.client_id),
+          name: this.workflowForm.name,
+          focus: this.workflowForm.focus || '',
+          timeline_type: this.workflowForm.has_event ? this.workflowForm.timeline_type : 'mensual',
+          event_type: this.workflowForm.has_event ? this.workflowForm.event_type : null,
+          event_description: this.workflowForm.has_event ? this.workflowForm.event_description : null,
+          event_date: this.workflowForm.has_event ? this.workflowForm.event_date : null,
+        };
+        await this.api('POST', '/workflows/', body);
+        this.showWorkflowModal = false;
+        await this.loadWorkflows();
+        this.toast('success', '✅ Flujo creado con timeline generado');
+      } catch (e) { this.toast('error', 'Error: ' + e.message); }
+      finally { this.creatingWorkflow = false; }
+    },
+
+    async startNextStep(wfId) {
+      this.runningStep = wfId;
+      try {
+        const r = await this.api('POST', `/workflows/${wfId}/start`);
+        await this.loadWorkflows();
+        await this.loadWorkflowPending();
+        this.toast('success', '▶ Paso ejecutado — revisa el checkpoint');
+        const wf = this.workflows.find(w => w.id === wfId);
+        if (wf) {
+          const waiting = wf.steps?.find(s => s.status === 'waiting_samuel');
+          if (waiting) this.openCheckpoint(wfId, waiting);
+        }
+      } catch (e) { this.toast('error', 'Error: ' + e.message); }
+      finally { this.runningStep = null; }
+    },
+
+    async openCheckpointFor(wfId) {
+      try {
+        const wf = await this.api('GET', `/workflows/${wfId}`);
+        const waiting = wf.steps?.find(s => s.status === 'waiting_samuel');
+        if (waiting) this.openCheckpoint(wfId, waiting);
+      } catch (e) { this.toast('error', e.message); }
+    },
+
+    openCheckpoint(wfId, step) {
+      this.activeWorkflowId = wfId;
+      this.activeCheckpoint = { ...step, _notes: '', _choice: 'continue' };
+      this.showCheckpointModal = true;
+    },
+
+    async approveStep() {
+      if (!this.activeCheckpoint) return;
+      this.approvingStep = true;
+      try {
+        await this.api('POST', `/workflows/${this.activeWorkflowId}/continue`, {
+          samuel_notes: this.activeCheckpoint._notes || '',
+          samuel_choice: 'continue',
+        });
+        this.showCheckpointModal = false;
+        await this.loadWorkflows();
+        await this.loadWorkflowPending();
+        this.toast('success', '✅ Paso aprobado — flujo avanzado');
+      } catch (e) { this.toast('error', e.message); }
+      finally { this.approvingStep = false; }
+    },
+
+    async skipStep() {
+      if (!this.activeCheckpoint) return;
+      this.approvingStep = true;
+      try {
+        await this.api('POST', `/workflows/${this.activeWorkflowId}/continue`, {
+          samuel_notes: this.activeCheckpoint._notes || '',
+          samuel_choice: 'skip',
+        });
+        this.showCheckpointModal = false;
+        await this.loadWorkflows();
+        await this.loadWorkflowPending();
+        this.toast('info', '⏭️ Paso omitido');
+      } catch (e) { this.toast('error', e.message); }
+      finally { this.approvingStep = false; }
+    },
+
+    async regenerateStep() {
+      if (!this.activeCheckpoint) return;
+      if (!this.activeCheckpoint._notes?.trim()) { this.toast('error', 'Escribe un ajuste para regenerar'); return; }
+      this.approvingStep = true;
+      try {
+        await this.api('POST', `/workflows/${this.activeWorkflowId}/regenerate/${this.activeCheckpoint.id}`, {
+          samuel_notes: this.activeCheckpoint._notes,
+        });
+        this.showCheckpointModal = false;
+        await this.loadWorkflows();
+        await this.loadWorkflowPending();
+        this.toast('info', '🔄 Regenerando — revisa el nuevo resultado');
+      } catch (e) { this.toast('error', e.message); }
+      finally { this.approvingStep = false; }
+    },
+
+    wfStepLabel(type) {
+      const m = { onboarding:'Onboarding', auditoria:'Auditoría', estrategia:'Estrategia',
+        calendario:'Calendario', produccion:'Producción', qa:'QA', reporte:'Reporte', renovacion:'Renovación' };
+      return m[type] || type;
+    },
+
+    wfStepColor(status) {
+      const m = { pending:'#3f3f46', running:'#6366f1', waiting_samuel:'#f59e0b',
+        approved:'#22c55e', skipped:'#52525b', regenerating:'#8b5cf6' };
+      return m[status] || '#3f3f46';
+    },
+
+    wfTimelineBadge(type) {
+      const m = { urgente:'badge-red', corto:'badge-amber', mensual:'badge-blue', continuo:'badge-green' };
+      return m[type] || 'badge-muted';
+    },
+
+    wfEventBadge(type) {
+      const m = { conferencia:'badge-blue', lanzamiento:'badge-gold', campaña:'badge-amber',
+        apertura:'badge-green', colaboracion:'badge-muted', otro:'badge-muted' };
+      return m[type] || 'badge-muted';
+    },
+
     showReport(r) {
       this.lastResult = r.content || '';
       this.resultTitle = r.title || 'Reporte';
@@ -1172,14 +1558,15 @@ function app() {
 
     pageTitle() {
       const m = { dashboard:'Dashboard', clientes:'Clientes', agentes:'Agentes IA',
-        monitor:'Monitor', reportes:'Reportes', logs:'Logs', ajustes:'Ajustes' };
+        monitor:'Monitor', reportes:'Reportes', logs:'Logs', ajustes:'Ajustes', flujos:'Flujos' };
       return m[this.page] || '';
     },
 
     pageSubtitle() {
       const m = { dashboard:'Resumen general', clientes:'Gestión de clientes',
         agentes:'Módulos de análisis IA', monitor:'Tendencias del mercado',
-        reportes:'Historial de análisis', logs:'Actividad del servidor', ajustes:'Configuración del sistema' };
+        reportes:'Historial de análisis', logs:'Actividad del servidor', ajustes:'Configuración del sistema',
+        flujos:'Motor de flujos multi-agente' };
       return m[this.page] || '';
     },
 
